@@ -1,0 +1,7 @@
+numpy
+pyannote.audio
+python-dotenv
+qdrant-client
+soundfile
+torch
+
