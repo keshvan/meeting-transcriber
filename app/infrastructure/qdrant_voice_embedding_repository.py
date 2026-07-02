@@ -1,0 +1,225 @@
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+from uuid import NAMESPACE_URL, uuid5
+
+from qdrant_client import QdrantClient, models
+
+from app.config.config import QdrantConfig
+from app.domain.voice_embedding import (
+    PersonCentroid,
+    SpeakerCandidate,
+    Vector,
+    VoiceEmbedding,
+)
+
+
+PERSON_ID_KEY = "person_id"
+PERSON_NAME_KEY = "person_name"
+EMBEDDING_COUNT_KEY = "embedding_count"
+UPDATED_AT_KEY = "updated_at"
+
+
+@dataclass
+class QdrantVoiceEmbeddingRepository:
+    client: QdrantClient
+    config: QdrantConfig
+
+    def ensure_storage(self) -> None:
+        if not self.config.create_collections:
+            return
+
+        self._ensure_collection(self.config.centroids_collection)
+        self._ensure_collection(self.config.embeddings_collection)
+
+        if self.config.create_payload_indexes:
+            self._ensure_keyword_index(self.config.centroids_collection, PERSON_ID_KEY)
+            self._ensure_keyword_index(self.config.embeddings_collection, PERSON_ID_KEY)
+
+    def upsert_embedding(
+        self,
+        embedding: VoiceEmbedding,
+        embedding_count: int,
+        updated_at: datetime,
+    ) -> None:
+        self._validate_vector(embedding.vector)
+        payload = {
+            **embedding.metadata,
+            PERSON_ID_KEY: embedding.person_id,
+            PERSON_NAME_KEY: embedding.person_name,
+            EMBEDDING_COUNT_KEY: embedding_count,
+            UPDATED_AT_KEY: updated_at.isoformat(),
+        }
+        self.client.upsert(
+            collection_name=self.config.embeddings_collection,
+            points=[
+                models.PointStruct(
+                    id=self._point_id(
+                        self.config.embeddings_collection,
+                        embedding.embedding_id,
+                    ),
+                    vector=embedding.vector,
+                    payload=payload,
+                )
+            ],
+        )
+
+    def get_centroid(self, person_id: str) -> PersonCentroid | None:
+        records = self.client.retrieve(
+            collection_name=self.config.centroids_collection,
+            ids=[self._point_id(self.config.centroids_collection, person_id)],
+            with_payload=True,
+            with_vectors=True,
+        )
+        if not records:
+            return None
+
+        record = records[0]
+        payload = record.payload or {}
+        vector = self._vector_from_point(record)
+        if vector is None:
+            return None
+
+        return PersonCentroid(
+            person_id=str(payload.get(PERSON_ID_KEY, person_id)),
+            person_name=str(payload.get(PERSON_NAME_KEY, "")),
+            vector=vector,
+            embedding_count=int(payload.get(EMBEDDING_COUNT_KEY, 0)),
+            updated_at=self._parse_updated_at(payload.get(UPDATED_AT_KEY)),
+        )
+
+    def upsert_centroid(
+        self,
+        person_id: str,
+        person_name: str,
+        vector: Vector,
+        embedding_count: int,
+        updated_at: datetime,
+    ) -> None:
+        self._validate_vector(vector)
+        self.client.upsert(
+            collection_name=self.config.centroids_collection,
+            points=[
+                models.PointStruct(
+                    id=self._point_id(self.config.centroids_collection, person_id),
+                    vector=vector,
+                    payload={
+                        PERSON_ID_KEY: person_id,
+                        PERSON_NAME_KEY: person_name,
+                        EMBEDDING_COUNT_KEY: embedding_count,
+                        UPDATED_AT_KEY: updated_at.isoformat(),
+                    },
+                )
+            ],
+        )
+
+    def search_centroids(self, vector: Vector, limit: int) -> list[SpeakerCandidate]:
+        self._validate_vector(vector)
+        response = self.client.query_points(
+            collection_name=self.config.centroids_collection,
+            query=vector,
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        return [self._candidate_from_point(point) for point in self._points(response)]
+
+    def search_person_embeddings(
+        self,
+        person_id: str,
+        vector: Vector,
+        limit: int,
+    ) -> list[SpeakerCandidate]:
+        self._validate_vector(vector)
+        response = self.client.query_points(
+            collection_name=self.config.embeddings_collection,
+            query=vector,
+            query_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key=PERSON_ID_KEY,
+                        match=models.MatchValue(value=person_id),
+                    )
+                ]
+            ),
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        return [self._candidate_from_point(point) for point in self._points(response)]
+
+    def _ensure_collection(self, collection_name: str) -> None:
+        if self.client.collection_exists(collection_name):
+            return
+
+        self.client.create_collection(
+            collection_name=collection_name,
+            vectors_config=models.VectorParams(
+                size=self.config.vector_size,
+                distance=self._distance(),
+                on_disk=self.config.on_disk_vectors,
+            ),
+        )
+
+    def _ensure_keyword_index(self, collection_name: str, field_name: str) -> None:
+        try:
+            self.client.create_payload_index(
+                collection_name=collection_name,
+                field_name=field_name,
+                field_schema=models.PayloadSchemaType.KEYWORD,
+            )
+        except Exception:
+            # Qdrant returns an error when the index already exists; that is fine here.
+            return
+
+    def _distance(self) -> models.Distance:
+        try:
+            return models.Distance[self.config.distance.upper()]
+        except KeyError as exc:
+            allowed = ", ".join(distance.name for distance in models.Distance)
+            raise ValueError(
+                f"Unsupported Qdrant distance {self.config.distance!r}. "
+                f"Allowed values: {allowed}."
+            ) from exc
+
+    def _validate_vector(self, vector: Vector) -> None:
+        if len(vector) != self.config.vector_size:
+            raise ValueError(
+                f"Voice embedding vector must have size {self.config.vector_size}, "
+                f"got {len(vector)}."
+            )
+
+    def _candidate_from_point(self, point: Any) -> SpeakerCandidate:
+        payload = point.payload or {}
+        return SpeakerCandidate(
+            person_id=str(payload.get(PERSON_ID_KEY, point.id)),
+            person_name=str(payload.get(PERSON_NAME_KEY, "")),
+            score=float(point.score),
+        )
+
+    def _point_id(self, collection_name: str, external_id: str) -> str:
+        return str(uuid5(NAMESPACE_URL, f"{collection_name}:{external_id}"))
+
+    def _points(self, response: Any) -> list[Any]:
+        if hasattr(response, "points"):
+            return list(response.points)
+
+        return list(response)
+
+    def _vector_from_point(self, point: Any) -> Vector | None:
+        vector = getattr(point, "vector", None)
+        if vector is None:
+            return None
+
+        if isinstance(vector, dict):
+            vector = vector.get("")
+
+        return list(vector) if vector is not None else None
+
+    def _parse_updated_at(self, value: Any) -> datetime:
+        if isinstance(value, str):
+            return datetime.fromisoformat(value)
+
+        return datetime.min
