@@ -1,6 +1,6 @@
 from app.application.embedding_protection import NoOpEmbeddingProtector
 from app.application.speaker_identification import SpeakerIdentificationService
-from app.config.config import SpeakerIdentificationConfig
+from app.config.settings import SpeakerIdentificationSettings
 from app.domain.voice_embedding import SpeakerCandidate
 
 
@@ -38,7 +38,7 @@ def test_identify_returns_best_person_above_threshold():
     service = SpeakerIdentificationService(
         repository=FakeVoiceEmbeddingRepository(),
         protector=NoOpEmbeddingProtector(),
-        config=SpeakerIdentificationConfig(
+        config=SpeakerIdentificationSettings(
             centroid_top_k=10,
             sample_limit_per_person=1000,
             similarity_threshold=0.85,
@@ -58,7 +58,7 @@ def test_identify_returns_unknown_below_threshold():
     service = SpeakerIdentificationService(
         repository=FakeVoiceEmbeddingRepository(),
         protector=NoOpEmbeddingProtector(),
-        config=SpeakerIdentificationConfig(
+        config=SpeakerIdentificationSettings(
             centroid_top_k=10,
             sample_limit_per_person=1000,
             similarity_threshold=0.95,
