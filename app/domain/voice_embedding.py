@@ -39,3 +39,17 @@ class SpeakerIdentificationResult:
     person_name: str
     score: float
     is_known: bool
+
+@dataclass(frozen=True)
+class FailedSpeakerEmbedding:
+    speaker_id: str
+    reason: str  # too_short | no_segments | model_error | resample_error
+    total_duration: float
+    segment_count: int
+    segments: list[tuple[float, float]]
+
+
+@dataclass(frozen=True)
+class EmbeddingResult:
+    embeddings: list[VoiceEmbedding]
+    failed: list[FailedSpeakerEmbedding]
