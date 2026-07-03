@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from math import sqrt
 
 from app.application.embedding_protection import EmbeddingProtector
-from app.config.config import SpeakerIdentificationConfig
+from app.config.settings import SpeakerIdentificationSettings
 from app.domain.voice_embedding import (
     SpeakerIdentificationResult,
     Vector,
@@ -16,7 +16,7 @@ from app.domain.voice_embedding_repository import VoiceEmbeddingRepository
 class SpeakerIdentificationService:
     repository: VoiceEmbeddingRepository
     protector: EmbeddingProtector
-    config: SpeakerIdentificationConfig
+    config: SpeakerIdentificationSettings
 
     def identify(self, vector: Vector) -> SpeakerIdentificationResult:
         protected_vector = self.protector.protect(vector)

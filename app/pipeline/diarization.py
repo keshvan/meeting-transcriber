@@ -1,25 +1,36 @@
-from pathlib import Path
-
 import torch
 from pyannote.audio import Pipeline
 
-from app.config.config import config
+from app.config.settings import settings
 from app.domain.speech_segment import SpeechSegment
+from app.domain.raw_audio import RawAudio
+
 
 class DiarizationProcessor:
-    def __init__(self):
+    def __init__(
+        self,
+        model_name: str | None = None,
+        device: torch.device | None = None,
+        hf_token: str | None = None,
+    ):
+        self.model_name = model_name or settings.diarization_model
+        self.device = device or settings.device
+        self.hf_token = hf_token or settings.hf_token
+
         self.pipeline = Pipeline.from_pretrained(
-            config.diarization_model,
-            token=config.hf_token
+            self.model_name,
+            token=self.hf_token,
         )
 
-        self.pipeline.to(config.device)
+        self.pipeline.to(self.device)
 
-    def process(self, waveform: torch.Tensor, sample_rate: int) -> list[SpeechSegment]:
+    def process(self, audio: RawAudio) -> list[SpeechSegment]:
+        waveform = audio.waveform.to(self.device)
+
         diarization = self.pipeline(
             {
                 "waveform": waveform.unsqueeze(0),
-                "sample_rate": sample_rate
+                "sample_rate": audio.sample_rate,
             },
         )
 
@@ -29,9 +40,8 @@ class DiarizationProcessor:
                 SpeechSegment(
                     start=turn.start,
                     end=turn.end,
-                    speaker_id=speaker
+                    speaker_id=speaker,
                 )
             )
-        
+
         return segments
-            

@@ -2,7 +2,7 @@ from typing import Protocol
 
 import numpy as np
 
-from app.config.config import EmbeddingProtectionConfig
+from app.config.settings import EmbeddingProtectionSettings
 from app.domain.voice_embedding import Vector
 
 
@@ -31,7 +31,7 @@ class MatrixEmbeddingProtector:
 
 
 def build_embedding_protector(
-    config: EmbeddingProtectionConfig,
+    config: EmbeddingProtectionSettings,
     vector_size: int,
 ) -> EmbeddingProtector:
     if not config.transform_enabled:

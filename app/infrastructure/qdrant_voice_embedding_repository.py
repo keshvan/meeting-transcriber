@@ -5,7 +5,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from qdrant_client import QdrantClient, models
 
-from app.config.config import QdrantConfig
+from app.config.settings import QdrantSettings
 from app.domain.voice_embedding import (
     PersonCentroid,
     SpeakerCandidate,
@@ -23,7 +23,7 @@ UPDATED_AT_KEY = "updated_at"
 @dataclass
 class QdrantVoiceEmbeddingRepository:
     client: QdrantClient
-    config: QdrantConfig
+    config: QdrantSettings
 
     def ensure_storage(self) -> None:
         if not self.config.create_collections:

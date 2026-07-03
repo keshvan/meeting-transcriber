@@ -3,5 +3,10 @@ pyannote.audio
 python-dotenv
 qdrant-client
 soundfile
-torch
-
+speechbrain
+torch==2.12.1
+torchaudio
+transformers
+flair
+spacy
+numba

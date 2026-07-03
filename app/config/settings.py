@@ -32,7 +32,7 @@ def _get_float(name: str, default: float) -> float:
 
 
 @dataclass(frozen=True)
-class QdrantConfig:
+class QdrantSettings:
     url: str
     api_key: str | None
     timeout: float
@@ -47,7 +47,7 @@ class QdrantConfig:
 
 
 @dataclass(frozen=True)
-class SpeakerIdentificationConfig:
+class SpeakerIdentificationSettings:
     centroid_top_k: int
     sample_limit_per_person: int
     similarity_threshold: float
@@ -55,19 +55,22 @@ class SpeakerIdentificationConfig:
 
 
 @dataclass(frozen=True)
-class EmbeddingProtectionConfig:
+class EmbeddingProtectionSettings:
     transform_enabled: bool
     transform_matrix_path: str | None
 
 
 @dataclass(frozen=True)
-class Config:
+class Settings:
     hf_token: str
     device: torch.device
     diarization_model: str
-    qdrant: QdrantConfig
-    speaker_identification: SpeakerIdentificationConfig
-    embedding_protection: EmbeddingProtectionConfig
+    embedding_model: str
+    embedding_min_duration: float
+    embedding_pause_between_segments: float
+    qdrant: QdrantSettings
+    speaker_identification: SpeakerIdentificationSettings
+    embedding_protection: EmbeddingProtectionSettings
 
 def resolve_device(device_name: str) -> torch.device:
     device_name = device_name.lower()
@@ -89,14 +92,17 @@ def resolve_device(device_name: str) -> torch.device:
         f"{device_name} - unknown device"
     )
 
-config = Config(
+settings = Settings(
     hf_token=os.getenv("HF_TOKEN", ""),
     device=resolve_device(os.getenv("DEVICE", "auto")),
     diarization_model=os.getenv(
         "DIARIZATION_MODEL",
         "pyannote/speaker-diarization-community-1",
     ),
-    qdrant=QdrantConfig(
+    embedding_model=os.getenv("EMBEDDING_MODEL", "speechbrain/ecapa-tdnn"),
+    embedding_min_duration=_get_float("EMBEDDING_MIN_DURATION", 0.5),
+    embedding_pause_between_segments=_get_float("EMBEDDING_PAUSE_BETWEEN_SEGMENTS", 0.15),
+    qdrant=QdrantSettings(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY") or None,
         timeout=_get_float("QDRANT_TIMEOUT", 5.0),
@@ -115,13 +121,13 @@ config = Config(
         create_payload_indexes=_get_bool("QDRANT_CREATE_PAYLOAD_INDEXES", True),
         on_disk_vectors=_get_bool("QDRANT_ON_DISK_VECTORS", False),
     ),
-    speaker_identification=SpeakerIdentificationConfig(
+    speaker_identification=SpeakerIdentificationSettings(
         centroid_top_k=_get_int("SPEAKER_CENTROID_TOP_K", 10),
         sample_limit_per_person=_get_int("SPEAKER_SAMPLE_LIMIT_PER_PERSON", 50),
         similarity_threshold=_get_float("SPEAKER_SIMILARITY_THRESHOLD", 0.75),
         unknown_speaker_name=os.getenv("SPEAKER_UNKNOWN_NAME", "Unknown"),
     ),
-    embedding_protection=EmbeddingProtectionConfig(
+    embedding_protection=EmbeddingProtectionSettings(
         transform_enabled=_get_bool("EMBEDDING_TRANSFORM_ENABLED", False),
         transform_matrix_path=os.getenv("EMBEDDING_TRANSFORM_MATRIX_PATH") or None,
     ),

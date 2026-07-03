@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.config.config import QdrantConfig
+from app.config.settings import QdrantSettings
 from app.domain.voice_embedding import VoiceEmbedding
 
 pytest.importorskip("qdrant_client")
@@ -23,7 +23,7 @@ class FakeQdrantClient:
 def _repository(client):
     return QdrantVoiceEmbeddingRepository(
         client=client,
-        config=QdrantConfig(
+        config=QdrantSettings(
             url="http://localhost:6333",
             api_key=None,
             timeout=5.0,
