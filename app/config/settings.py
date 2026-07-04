@@ -67,7 +67,8 @@ class Settings:
     diarization_model: str
     embedding_model: str
     embedding_min_duration: float
-    embedding_pause_between_segments: float
+    stt_provider: str
+    stt_model: str
     qdrant: QdrantSettings
     speaker_identification: SpeakerIdentificationSettings
     embedding_protection: EmbeddingProtectionSettings
@@ -101,7 +102,8 @@ settings = Settings(
     ),
     embedding_model=os.getenv("EMBEDDING_MODEL", "speechbrain/ecapa-tdnn"),
     embedding_min_duration=_get_float("EMBEDDING_MIN_DURATION", 0.5),
-    embedding_pause_between_segments=_get_float("EMBEDDING_PAUSE_BETWEEN_SEGMENTS", 0.15),
+    stt_provider=os.getenv("STT_PROVIDER", "whisper_local"),
+    stt_model=os.getenv("STT_MODEL", "base"),
     qdrant=QdrantSettings(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY") or None,

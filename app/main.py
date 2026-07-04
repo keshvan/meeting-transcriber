@@ -5,6 +5,8 @@ import torch
 from app.utils.audio import load_audio
 from app.pipeline.diarization import DiarizationProcessor
 from app.pipeline.embedding import EmbeddingProcessor
+from app.pipeline.stt import STTProcessor
+from app.infrastructure.stt.factory import STTFactory
 
 def main():
     audio_path = Path("data/meetings/test.wav")
@@ -21,6 +23,14 @@ def main():
     print(f"found segments: {len(segments)}\n")
     for segment in segments:
         print(segment)
+
+    print("\n--- STT stage ---")
+    stt_client = STTFactory.create()
+    stt_processor = STTProcessor(client=stt_client)
+    segments = stt_processor.process(audio, segments)
+
+    for segment in segments:
+        print(f"{segment.speaker_id}: {segment.text}")
 
     print("\n--- Embedding stage ---")
     embedding_processor = EmbeddingProcessor()
