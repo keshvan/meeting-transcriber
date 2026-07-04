@@ -10,3 +10,4 @@ transformers
 flair
 spacy
 numba
+faster-whisper
