@@ -2,9 +2,7 @@ import logging
 from collections import defaultdict
 
 import torch
-import torchaudio
-if not hasattr(torchaudio, "set_audio_backend"):
-    torchaudio.set_audio_backend = lambda backend: None
+
 from speechbrain.inference.speaker import EncoderClassifier
 
 from app.config.settings import settings
@@ -28,17 +26,11 @@ class EmbeddingProcessor:
         model_name: str | None = None,
         device: torch.device | None = None,
         min_duration: float | None = None,
-        pause_between_segments: float | None = None
     ):
         self.model_name = model_name or settings.embedding_model
         self.device = device or settings.device
         self.min_duration = (
             min_duration if min_duration is not None else settings.embedding_min_duration
-        )
-        self.pause_between_segments = (
-            pause_between_segments
-            if pause_between_segments is not None
-            else settings.embedding_pause_between_segments
         )
 
         self.classifier = EncoderClassifier.from_hparams(
@@ -51,7 +43,9 @@ class EmbeddingProcessor:
         audio: RawAudio,
         segments: list[SpeechSegment]
     ) -> EmbeddingResult:
-        waveform = audio.waveform.to(self.device)
+        waveform = audio.waveform
+        if waveform.device != self.device:
+            waveform = waveform.to(self.device)
 
         if waveform.ndim != 1:
             raise ValueError(
@@ -132,20 +126,14 @@ class EmbeddingProcessor:
         segments: list[SpeechSegment],
     ) -> torch.Tensor:
         parts: list[torch.Tensor] = []
-        pause_samples = int(self.pause_between_segments * audio.sample_rate)
-        silence = torch.zeros(
-            pause_samples, device=audio.waveform.device, dtype=audio.waveform.dtype
-        )
 
         for segment in segments:
             part_audio = cut_audio(audio, segment.start, segment.end)
             parts.append(part_audio.waveform)
-            parts.append(silence)
-        
+
         if parts:
-            parts.pop()
             return torch.cat(parts)
-        
+
         return torch.zeros(0, device=audio.waveform.device, dtype=audio.waveform.dtype)
 
     def _resample_if_needed(
