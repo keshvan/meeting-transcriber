@@ -7,14 +7,13 @@ from speechbrain.inference.speaker import EncoderClassifier
 
 from app.config.settings import settings
 from app.domain.speech_segment import SpeechSegment
-from app.domain.raw_audio import RawAudio
+from app.domain.raw_audio import RawAudio, cut_audio
 from app.domain.voice_embedding import (
     EmbeddingResult,
     FailedSpeakerEmbedding,
     Vector,
     VoiceEmbedding,
 )
-from app.utils.audio import cut_audio
 
 logger = logging.getLogger(__name__)
 

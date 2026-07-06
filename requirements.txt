@@ -11,3 +11,5 @@ flair
 spacy
 numba
 faster-whisper
+uvicorn
+python-multipart
