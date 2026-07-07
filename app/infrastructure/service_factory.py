@@ -32,6 +32,6 @@ def build_speaker_identification_service() -> SpeakerIdentificationService:
     return SpeakerIdentificationService(
         repository=repository,
         protector=protector,
-        settings=settings.speaker_identification,
+        config=settings.speaker_identification,
     )
 
