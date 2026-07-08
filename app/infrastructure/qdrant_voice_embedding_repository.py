@@ -23,18 +23,18 @@ UPDATED_AT_KEY = "updated_at"
 @dataclass
 class QdrantVoiceEmbeddingRepository:
     client: QdrantClient
-    config: QdrantSettings
+    settings: QdrantSettings
 
     def ensure_storage(self) -> None:
-        if not self.config.create_collections:
+        if not self.settings.create_collections:
             return
 
-        self._ensure_collection(self.config.centroids_collection)
-        self._ensure_collection(self.config.embeddings_collection)
+        self._ensure_collection(self.settings.centroids_collection)
+        self._ensure_collection(self.settings.embeddings_collection)
 
-        if self.config.create_payload_indexes:
-            self._ensure_keyword_index(self.config.centroids_collection, PERSON_ID_KEY)
-            self._ensure_keyword_index(self.config.embeddings_collection, PERSON_ID_KEY)
+        if self.settings.create_payload_indexes:
+            self._ensure_keyword_index(self.settings.centroids_collection, PERSON_ID_KEY)
+            self._ensure_keyword_index(self.settings.embeddings_collection, PERSON_ID_KEY)
 
     def upsert_embedding(
         self,
@@ -51,11 +51,11 @@ class QdrantVoiceEmbeddingRepository:
             UPDATED_AT_KEY: updated_at.isoformat(),
         }
         self.client.upsert(
-            collection_name=self.config.embeddings_collection,
+            collection_name=self.settings.embeddings_collection,
             points=[
                 models.PointStruct(
                     id=self._point_id(
-                        self.config.embeddings_collection,
+                        self.settings.embeddings_collection,
                         embedding.embedding_id,
                     ),
                     vector=embedding.vector,
@@ -66,8 +66,8 @@ class QdrantVoiceEmbeddingRepository:
 
     def get_centroid(self, person_id: str) -> PersonCentroid | None:
         records = self.client.retrieve(
-            collection_name=self.config.centroids_collection,
-            ids=[self._point_id(self.config.centroids_collection, person_id)],
+            collection_name=self.settings.centroids_collection,
+            ids=[self._point_id(self.settings.centroids_collection, person_id)],
             with_payload=True,
             with_vectors=True,
         )
@@ -98,10 +98,10 @@ class QdrantVoiceEmbeddingRepository:
     ) -> None:
         self._validate_vector(vector)
         self.client.upsert(
-            collection_name=self.config.centroids_collection,
+            collection_name=self.settings.centroids_collection,
             points=[
                 models.PointStruct(
-                    id=self._point_id(self.config.centroids_collection, person_id),
+                    id=self._point_id(self.settings.centroids_collection, person_id),
                     vector=vector,
                     payload={
                         PERSON_ID_KEY: person_id,
@@ -116,7 +116,7 @@ class QdrantVoiceEmbeddingRepository:
     def search_centroids(self, vector: Vector, limit: int) -> list[SpeakerCandidate]:
         self._validate_vector(vector)
         response = self.client.query_points(
-            collection_name=self.config.centroids_collection,
+            collection_name=self.settings.centroids_collection,
             query=vector,
             limit=limit,
             with_payload=True,
@@ -133,7 +133,7 @@ class QdrantVoiceEmbeddingRepository:
     ) -> list[SpeakerCandidate]:
         self._validate_vector(vector)
         response = self.client.query_points(
-            collection_name=self.config.embeddings_collection,
+            collection_name=self.settings.embeddings_collection,
             query=vector,
             query_filter=models.Filter(
                 must=[
@@ -157,9 +157,9 @@ class QdrantVoiceEmbeddingRepository:
         self.client.create_collection(
             collection_name=collection_name,
             vectors_config=models.VectorParams(
-                size=self.config.vector_size,
+                size=self.settings.vector_size,
                 distance=self._distance(),
-                on_disk=self.config.on_disk_vectors,
+                on_disk=self.settings.on_disk_vectors,
             ),
         )
 
@@ -176,18 +176,18 @@ class QdrantVoiceEmbeddingRepository:
 
     def _distance(self) -> models.Distance:
         try:
-            return models.Distance[self.config.distance.upper()]
+            return models.Distance[self.settings.distance.upper()]
         except KeyError as exc:
             allowed = ", ".join(distance.name for distance in models.Distance)
             raise ValueError(
-                f"Unsupported Qdrant distance {self.config.distance!r}. "
+                f"Unsupported Qdrant distance {self.settings.distance!r}. "
                 f"Allowed values: {allowed}."
             ) from exc
 
     def _validate_vector(self, vector: Vector) -> None:
-        if len(vector) != self.config.vector_size:
+        if len(vector) != self.settings.vector_size:
             raise ValueError(
-                f"Voice embedding vector must have size {self.config.vector_size}, "
+                f"Voice embedding vector must have size {self.settings.vector_size}, "
                 f"got {len(vector)}."
             )
 

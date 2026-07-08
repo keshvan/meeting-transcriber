@@ -31,17 +31,17 @@ class MatrixEmbeddingProtector:
 
 
 def build_embedding_protector(
-    config: EmbeddingProtectionSettings,
+    settings: EmbeddingProtectionSettings,
     vector_size: int,
 ) -> EmbeddingProtector:
-    if not config.transform_enabled:
+    if not settings.transform_enabled:
         return NoOpEmbeddingProtector()
 
-    if not config.transform_matrix_path:
+    if not settings.transform_matrix_path:
         raise RuntimeError(
             "EMBEDDING_TRANSFORM_ENABLED=true requires "
             "EMBEDDING_TRANSFORM_MATRIX_PATH."
         )
 
-    return MatrixEmbeddingProtector(config.transform_matrix_path, vector_size)
+    return MatrixEmbeddingProtector(settings.transform_matrix_path, vector_size)
 
