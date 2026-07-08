@@ -9,7 +9,7 @@ from app.domain.voice_embedding import (
     Vector,
     VoiceEmbedding,
 )
-from app.domain.voice_embedding_repository import VoiceEmbeddingRepository
+from app.application.ports.voice_embedding_repository import VoiceEmbeddingRepository
 
 
 @dataclass(frozen=True)
