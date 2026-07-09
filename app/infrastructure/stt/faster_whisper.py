@@ -33,7 +33,7 @@ class FasterWhisperSTT:
         
         samples = audio.waveform.cpu().numpy().astype(np.float32)
 
-        segments, info = self.model.transcribe(
+        segments, _ = self.model.transcribe(
             samples,
             language=language,
             word_timestamps=True,
@@ -45,8 +45,8 @@ class FasterWhisperSTT:
                 words.append(
                     Word(
                         text=w.word,
-                        start=w.start,
-                        end=w.end
+                        start_ms=round(w.start * 1000),
+                        end_ms=round(w.end * 1000)
                     )
                 )
 

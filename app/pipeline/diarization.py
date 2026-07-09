@@ -1,10 +1,12 @@
+from uuid import UUID
+import uuid
+
 import torch
 from pyannote.audio import Pipeline
 
 from app.config.settings import settings
 from app.domain.speech_segment import SpeechSegment
 from app.domain.raw_audio import RawAudio
-
 
 class DiarizationProcessor:
     def __init__(
@@ -38,9 +40,9 @@ class DiarizationProcessor:
         for turn, speaker in diarization.speaker_diarization:
             segments.append(
                 SpeechSegment(
-                    start=turn.start,
-                    end=turn.end,
-                    speaker_id=speaker,
+                    start_ms=round(turn.start * 1000),
+                    end_ms=round(turn.end * 1000),
+                    diarization_label=speaker,
                 )
             )
 

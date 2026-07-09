@@ -7,9 +7,9 @@ class RawAudio:
     waveform: torch.Tensor
     sample_rate: int
 
-def cut_audio(audio: RawAudio, start: float, end: float) -> RawAudio:
-    start_sample = int(start * audio.sample_rate)
-    end_sample = int(end * audio.sample_rate)
+def cut_audio(audio: RawAudio, start_ms: int, end_ms: int) -> RawAudio:
+    start_sample = int(start_ms * audio.sample_rate / 1000)
+    end_sample = int(end_ms * audio.sample_rate / 1000)
 
     return RawAudio(
         waveform=audio.waveform[start_sample:end_sample],
