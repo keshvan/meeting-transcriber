@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class Word:
     text: str
-    start: float
-    end: float
+    start_ms: int
+    end_ms: int
 
 @dataclass(frozen=True)
 class Transcription:

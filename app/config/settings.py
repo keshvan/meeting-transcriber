@@ -59,7 +59,6 @@ class EmbeddingProtectionSettings:
     transform_enabled: bool
     transform_matrix_path: str | None
 
-
 @dataclass(frozen=True)
 class Settings:
     hf_token: str
@@ -72,6 +71,8 @@ class Settings:
     qdrant: QdrantSettings
     speaker_identification: SpeakerIdentificationSettings
     embedding_protection: EmbeddingProtectionSettings
+    postgres_dsn: str
+    base_dir: str
 
 def resolve_device(device_name: str) -> torch.device:
     device_name = device_name.lower()
@@ -133,4 +134,6 @@ settings = Settings(
         transform_enabled=_get_bool("EMBEDDING_TRANSFORM_ENABLED", False),
         transform_matrix_path=os.getenv("EMBEDDING_TRANSFORM_MATRIX_PATH") or None,
     ),
+    postgres_dsn=os.getenv("POSTGRRES_DSN", "postgresql+psycopg2://postgres:postgres@localhost:5432/meetings"),
+    base_dir=os.getenv("BASE_DIR", "./data/meetings")
 )

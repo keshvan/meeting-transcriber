@@ -59,19 +59,19 @@ class EmbeddingProcessor:
         failed: list[FailedSpeakerEmbedding] = []
         
         for speaker_id, speaker_segs in speaker_segments.items():
-            speaker_segs = sorted(speaker_segs, key=lambda s: s.start)
+            speaker_segs = sorted(speaker_segs, key=lambda s: s.start_ms)
             filtered = [
-                s for s in speaker_segs if (s.end - s.start) >= self.min_duration
+                s for s in speaker_segs if (s.end_ms - s.start_ms) >= self.min_duration
             ]
 
             if not filtered:
-                total = sum(s.end - s.start for s in speaker_segs)
+                total = sum(s.end_ms - s.start_ms for s in speaker_segs)
                 failure = FailedSpeakerEmbedding(
                     speaker_id=speaker_id,
                     reason="no_segments",
                     total_duration=total,
                     segment_count=len(speaker_segs),
-                    segments=[(s.start, s.end) for s in speaker_segs],
+                    segments=[(s.start_ms, s.end_ms) for s in speaker_segs],
                 )
                 failed.append(failure)
                 logger.warning(
@@ -88,26 +88,25 @@ class EmbeddingProcessor:
 
                 embeddings.append(
                     VoiceEmbedding(
-                        person_id=speaker_id,
-                        person_name="Unknown",
+                        speaker_id=speaker_id,
                         vector=vector,
                         metadata={
                             "source_segments": len(filtered),
                             "total_duration": sum(
-                                s.end - s.start for s in filtered
+                                s.end_ms - s.start_ms for s in filtered
                             ),
                             "embedding_model": self.model_name,
                         },
                     )
                 )
             except Exception as exc:
-                total = sum(s.end - s.start for s in filtered)
+                total = sum(s.end_ms - s.start_ms for s in filtered)
                 failure = FailedSpeakerEmbedding(
                     speaker_id=speaker_id,
                     reason="model_error",
                     total_duration=total,
                     segment_count=len(filtered),
-                    segments=[(s.start, s.end) for s in filtered],
+                    segments=[(s.start_ms, s.end_ms) for s in filtered],
                 )
                 failed.append(failure)
                 logger.warning(
@@ -127,7 +126,7 @@ class EmbeddingProcessor:
         parts: list[torch.Tensor] = []
 
         for segment in segments:
-            part_audio = cut_audio(audio, segment.start, segment.end)
+            part_audio = cut_audio(audio, segment.start_ms, segment.end_ms)
             parts.append(part_audio.waveform)
 
         if parts:

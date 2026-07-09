@@ -1,5 +1,5 @@
 from app.config.settings import settings
-from app.infrastructure.stt.base import STTClient
+from app.application.ports.stt_client import STTClient
 
 from app.infrastructure.stt.faster_whisper import FasterWhisperSTT
 
