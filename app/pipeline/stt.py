@@ -1,4 +1,4 @@
-from app.infrastructure.stt.base import STTClient
+from app.application.ports.stt_client import STTClient
 from app.domain.raw_audio import RawAudio
 from app.domain.transcript import Transcription
 

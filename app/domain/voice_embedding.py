@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 
 Vector = list[float]
@@ -9,9 +9,10 @@ Vector = list[float]
 
 @dataclass(frozen=True)
 class VoiceEmbedding:
-    person_id: str
-    person_name: str
+    speaker_id: UUID
     vector: Vector
+    person_id: str | None =  None
+    person_name: str | None = None
     embedding_id: str = field(default_factory=lambda: str(uuid4()))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] = field(default_factory=dict)

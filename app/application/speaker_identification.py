@@ -61,6 +61,7 @@ class SpeakerIdentificationService:
         updated_at = datetime.now(timezone.utc)
         protected_embedding = VoiceEmbedding(
             person_id=embedding.person_id,
+            speaker_id=embedding.speaker_id,
             person_name=embedding.person_name,
             vector=self.protector.protect(embedding.vector),
             embedding_id=embedding.embedding_id,

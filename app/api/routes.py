@@ -1,8 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
-from fastapi.concurrency import run_in_threadpool
 from typing import Optional
-import base64
-import tempfile
 
 from app.application.meeting import MeetingService
 from .dependencies import get_service
@@ -22,13 +19,16 @@ async def process_meeting(
             detail="Provide either file or audio_base64"
         )
 
-    result = await service.process(
-        file=file,
-        audio_base64=audio_base64,
-    )
+    try:
+        result = await service.process(
+            file=file,
+            audio_base64=audio_base64,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {
         "email": email,
-        "result": result
+        "result": result,
     }
     
