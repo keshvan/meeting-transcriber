@@ -18,7 +18,7 @@ class AlignmentProcessor:
         for segment in segments:
             while (
                 word_idx < len(words)
-                and words[word_idx].end <= segment.start
+                and words[word_idx].end_ms <= segment.start_ms
             ):
                 word_idx += 1
 
@@ -27,11 +27,11 @@ class AlignmentProcessor:
 
             while (
                 current < len(words)
-                and words[current].start < segment.end
+                and words[current].start_ms < segment.end_ms
             ):
                 word = words[current]
 
-                if word.end > segment.start:
+                if word.end_ms > segment.start_ms:
                     segment_words.append(word)
 
                 current += 1
