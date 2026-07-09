@@ -6,7 +6,33 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_storage:/qdrant/storage
+  
+  postgres:
+    image: postgres:17-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: meetings
+    volumes:
+      - postgres_storage:/var/lib/postgresql/data
+    
+  pgadmin:
+    image: dpage/pgadmin4:8
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_storage:/var/lib/pgadmin
+    depends_on:
+      - postgres
 
 volumes:
   qdrant_storage:
-
+  postgres_storage:
+  pgadmin_storage:
