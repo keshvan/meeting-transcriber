@@ -1,6 +1,3 @@
-from uuid import UUID
-import uuid
-
 import torch
 from pyannote.audio import Pipeline
 
