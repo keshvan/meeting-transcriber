@@ -18,7 +18,7 @@ class SpeakerStatus(str, Enum):
 class Person:
     id: UUID
     name: str
-    created_at: datetime
+    created_at: datetime | None = None
 
 @dataclass
 class Speaker:
