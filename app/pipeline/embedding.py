@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+import uuid
 
 import torch
 
@@ -90,6 +91,7 @@ class EmbeddingProcessor:
                     VoiceEmbedding(
                         speaker_id=speaker_id,
                         vector=vector,
+                        embedding_id=uuid.uuid4(),
                         metadata={
                             "source_segments": len(filtered),
                             "total_duration": sum(
