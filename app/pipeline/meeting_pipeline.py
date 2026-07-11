@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from uuid import UUID
 import uuid
@@ -106,7 +107,6 @@ class MeetingPipeline:
 
         for embedding in embeddings:
             result = self.speaker_identification.identify(embedding.vector)
-            
             speaker = speaker_map.get(embedding.speaker_id)
             if speaker is None:
                 continue
@@ -119,6 +119,7 @@ class MeetingPipeline:
                 speaker.embedding_id = embedding.embedding_id
                 speaker.status = SpeakerStatus.IDENTIFIED
 
+                # Сохраняем как подтверждённый (обновит центроид и перезапишет эмбеддинг)
                 self.speaker_identification.save_confirmed_embedding(
                     VoiceEmbedding(
                         speaker_id=embedding.speaker_id,
@@ -132,3 +133,9 @@ class MeetingPipeline:
                 )
             else:
                 speaker.status = SpeakerStatus.UNKNOWN
+                # Сохраняем эмбеддинг без person_id (как неизвестный)
+                self.speaker_identification.repository.upsert_embedding(
+                    embedding=embedding,
+                    embedding_count=1, # Не важно, центроида не обновляется
+                    updated_at=datetime.now(timezone.utc),
+                )

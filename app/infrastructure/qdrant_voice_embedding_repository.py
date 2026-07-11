@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from qdrant_client import QdrantClient, models
 
@@ -15,6 +15,7 @@ from app.domain.voice_embedding import (
 
 
 PERSON_ID_KEY = "person_id"
+SPEAKER_ID_KEY = "speaker_id"
 PERSON_NAME_KEY = "person_name"
 EMBEDDING_COUNT_KEY = "embedding_count"
 UPDATED_AT_KEY = "updated_at"
@@ -47,6 +48,8 @@ class QdrantVoiceEmbeddingRepository:
             **embedding.metadata,
             PERSON_ID_KEY: embedding.person_id,
             PERSON_NAME_KEY: embedding.person_name,
+            SPEAKER_ID_KEY: str(embedding.speaker_id),
+            "embedding_id": str(embedding.embedding_id),
             EMBEDDING_COUNT_KEY: embedding_count,
             UPDATED_AT_KEY: updated_at.isoformat(),
         }
@@ -149,6 +152,40 @@ class QdrantVoiceEmbeddingRepository:
         )
 
         return [self._candidate_from_point(point) for point in self._points(response)]
+
+    def get_embeddings_by_speaker(self, speaker_id: UUID) -> list[VoiceEmbedding]:
+        """Возвращает все эмбеддинги для данного speaker_id (обычно один)."""
+        response = self.client.scroll(
+            collection_name=self.settings.embeddings_collection,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key=SPEAKER_ID_KEY,
+                        match=models.MatchValue(value=str(speaker_id)),
+                    )
+                ]
+            ),
+            with_payload=True,
+            with_vectors=True,
+            limit=10,  # обычно хватит одного, но на всякий случай
+        )
+        points = response[0]  # scroll возвращает (points, next_offset)
+        return [self._embedding_from_point(p) for p in points]
+
+    def _embedding_from_point(self, point: Any) -> VoiceEmbedding:
+        payload = point.payload or {}
+        vector = self._vector_from_point(point)
+        if vector is None:
+            raise ValueError("Point has no vector")
+        return VoiceEmbedding(
+            speaker_id=UUID(payload.get(SPEAKER_ID_KEY)),
+            person_id=payload.get(PERSON_ID_KEY),
+            person_name=payload.get(PERSON_NAME_KEY, ""),
+            vector=vector,
+            embedding_id=UUID(payload.get("embedding_id")),
+            updated_at=self._parse_updated_at(payload.get(UPDATED_AT_KEY)),
+            metadata={k: v for k, v in payload.items() if k not in (SPEAKER_ID_KEY, PERSON_ID_KEY, PERSON_NAME_KEY, "embedding_id", EMBEDDING_COUNT_KEY, UPDATED_AT_KEY)},
+        )
 
     def _ensure_collection(self, collection_name: str) -> None:
         if self.client.collection_exists(collection_name):

@@ -5,6 +5,7 @@ from math import sqrt
 from app.application.embedding_protection import EmbeddingProtector
 from app.config.settings import SpeakerIdentificationSettings
 from app.domain.voice_embedding import (
+    SpeakerCandidate,
     SpeakerIdentificationResult,
     Vector,
     VoiceEmbedding,
@@ -17,6 +18,27 @@ class SpeakerIdentificationService:
     repository: VoiceEmbeddingRepository
     protector: EmbeddingProtector
     config: SpeakerIdentificationSettings
+
+    def suggest(
+        self,
+        vector: Vector,
+        limit: int = 5
+    ) -> list[SpeakerCandidate]:
+        protected = self.protector.protect(vector)
+
+        centroids = self.repository.search_centroids(
+            protected,
+            limit=limit,
+        )
+
+        return [
+            SpeakerCandidate(
+                person_id=c.person_id,
+                person_name=c.person_name,
+                score=c.score,
+            )
+            for c in centroids
+        ]
 
     def identify(self, vector: Vector) -> SpeakerIdentificationResult:
         protected_vector = self.protector.protect(vector)

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional, Sequence
 from uuid import UUID
 
@@ -15,7 +16,9 @@ class PostgresPersonRepository:
         self._session = session
 
     def create(self, person: Person) -> Person:
-        row = PersonORM(id=person.id, name=person.name)
+        row = PersonORM(id=person.id, 
+                        name=person.name, 
+                        created_at=person.created_at or datetime.now(timezone.utc))
         self._session.add(row)
         self._session.flush()
         return _person_to_domain(row)
@@ -24,6 +27,12 @@ class PostgresPersonRepository:
         row = self._session.get(PersonORM, person_id)
         return _person_to_domain(row) if row else None
 
+    def get_by_name(self, name: str) -> Optional[Person]:
+        row = self._session.scalar(
+            select(PersonORM).where(PersonORM.name == name)
+        )
+        return _person_to_domain(row) if row else None
+    
     def list_all(self) -> Sequence[Person]:
         rows = self._session.scalars(select(PersonORM)).all()
         return [_person_to_domain(r) for r in rows]

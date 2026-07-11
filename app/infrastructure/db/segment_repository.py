@@ -52,5 +52,11 @@ class PostgresSegmentRepository:
         ).all()
         return [_segment_to_domain(r) for r in rows]
     
+    def get_by_speaker(self, speaker_id: UUID) -> Sequence[Segment]:
+        rows = self._session.scalars(
+            select(SegmentORM).where(SegmentORM.speaker_id == speaker_id)
+        ).all()
+        return [_segment_to_domain(r) for r in rows]
+    
     def commit(self) -> None:
         self._session.commit()
