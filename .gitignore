@@ -1,5 +1,6 @@
 *.env
 .venv
+.idea
 data
 __pycache__
 pretrained_models
