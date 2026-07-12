@@ -1,12 +1,12 @@
 from collections import defaultdict
-
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from uuid import UUID
 import uuid
 
 from app.application.speaker_identification import SpeakerIdentificationService
-from app.domain.entities import Speaker, SpeakerStatus
+from app.application.ports.repositories import PersonRepository  # <-- добавить
+from app.domain.entities import Speaker, SpeakerStatus, Person  # <-- добавить Person
 from app.domain.raw_audio import RawAudio
 from app.domain.pipeline_result import PipelineResult
 from app.domain.speech_segment import SpeechSegment
@@ -27,12 +27,14 @@ class MeetingPipeline:
         alignment: "AlignmentProcessor",
         embedding: "EmbeddingProcessor",
         speaker_identification: SpeakerIdentificationService,
+        person_repository: PersonRepository,  # <-- новый параметр
     ):
         self.diarization = diarization
         self.stt = stt
         self.alignment = alignment
         self.embedding = embedding
         self.speaker_identification = speaker_identification
+        self.person_repository = person_repository  # <-- сохранить
 
     def process(self, meeting_id: UUID, audio: RawAudio) -> PipelineResult:
         segments = self.diarization.process(audio)
@@ -115,7 +117,18 @@ class MeetingPipeline:
                 segment.person_name = result.person_name
 
             if result.is_known:
-                speaker.person_id = result.person_id
+                # Убедимся, что Person существует в БД
+                person_id = UUID(result.person_id)
+                person = self.person_repository.get(person_id)
+                if person is None:
+                    person = Person(
+                        id=person_id,
+                        name=result.person_name,
+                        created_at=datetime.now(timezone.utc),
+                    )
+                    self.person_repository.create(person)
+
+                speaker.person_id = person.id
                 speaker.embedding_id = embedding.embedding_id
                 speaker.status = SpeakerStatus.IDENTIFIED
 
