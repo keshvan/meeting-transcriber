@@ -28,7 +28,7 @@ def get_diarization_processor() -> DiarizationProcessor:
 
 @lru_cache
 def get_stt_processor() -> STTProcessor:
-    return STTProcessor(STTFactory.create())
+    return STTProcessor(STTFactory.create(), language=settings.stt_language)
 
 @lru_cache
 def get_alignment_processor() -> AlignmentProcessor:
@@ -87,6 +87,7 @@ def get_service(
     meeting_repository: PostgresMeetingRepository = Depends(get_meeting_repository),
     speaker_repository: PostgresSpeakerRepository = Depends(get_speaker_repository),
     segment_repository: PostgresSegmentRepository = Depends(get_segment_repository),
+    person_repository: PostgresPersonRepository = Depends(get_person_repository),
     speaker_identification: SpeakerIdentificationService = Depends(get_speaker_identification_service),
     diarization: DiarizationProcessor = Depends(get_diarization_processor),
     stt: STTProcessor = Depends(get_stt_processor),
@@ -100,6 +101,7 @@ def get_service(
             alignment=alignment,
             embedding=embedding,
             speaker_identification=speaker_identification,
+            person_repository=person_repository,
         ),
         audio_storage=audio_storage,
         meeting_repository=meeting_repository,

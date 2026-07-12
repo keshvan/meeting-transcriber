@@ -11,10 +11,11 @@ from app.infrastructure.db.session import get_session
 from app.infrastructure.db.speaker_repository import PostgresSpeakerRepository
 from app.infrastructure.db.segment_repository import PostgresSegmentRepository
 from app.infrastructure.db.person_repository import PostgresPersonRepository
+from app.infrastructure.db.meeting_repository import PostgresMeetingRepository
 from app.infrastructure.qdrant_voice_embedding_repository import QdrantVoiceEmbeddingRepository
 from app.infrastructure.service_factory import build_qdrant_client, build_embedding_protector
 from app.application.speaker_identification import SpeakerIdentificationService
-from app.domain.entities import Speaker, SpeakerStatus, Person
+from app.domain.entities import Speaker, SpeakerStatus, Person, MeetingStatus
 from app.domain.voice_embedding import VoiceEmbedding
 
 
@@ -50,20 +51,25 @@ def main(meeting_id: str):
         speaker_repo = PostgresSpeakerRepository(session)
         segment_repo = PostgresSegmentRepository(session)
         person_repo = PostgresPersonRepository(session)
+        meeting_repo = PostgresMeetingRepository(session)
 
-        # 1. Загружаем всех спикеров встречи
+        # Загружаем всех спикеров встречи
         all_speakers = speaker_repo.list_by_meeting(meeting_uuid)
         if not all_speakers:
             click.echo(f"Встреча {meeting_uuid} не найдена или нет спикеров", err=True)
             return
 
-        # 2. Фильтруем неизвестных
+        # Фильтруем неизвестных
         unknown_speakers = [s for s in all_speakers if s.status == SpeakerStatus.UNKNOWN]
         if not unknown_speakers:
             click.echo("Все спикеры уже идентифицированы.")
+            meeting_repo.update_status(meeting_uuid, MeetingStatus.COMPLETED)
+            session.commit()
+            click.echo("Статус встречи обновлён на COMPLETED.")
             return
 
-        # 3. Для каждого неизвестного получаем эмбеддинг из Qdrant
+
+        # Для каждого неизвестного получаем эмбеддинг из Qdrant
         speaker_embedding_map = {}
         for speaker in unknown_speakers:
             embeddings = qdrant_repo.get_embeddings_by_speaker(speaker.id)
@@ -76,7 +82,7 @@ def main(meeting_id: str):
             click.echo("Нет эмбеддингов для неизвестных спикеров. Возможно, пайплайн не сохранил их.")
             return
 
-        # 4. Интерактивный опрос
+        # Интерактивный опрос
         for speaker in unknown_speakers:
             embedding = speaker_embedding_map.get(speaker.id)
             if embedding is None:
@@ -84,7 +90,7 @@ def main(meeting_id: str):
 
             # Получаем примеры реплик этого спикера
             segments = segment_repo.get_by_speaker(speaker.id)
-            sample_segments = segments[:3]  # первые три
+            sample_segments = segments[:10]  # первые три
             sample_text = " | ".join(seg.text for seg in sample_segments)
 
             click.echo("\n" + "=" * 60)
@@ -160,7 +166,9 @@ def main(meeting_id: str):
             identification.save_confirmed_embedding(confirmed_emb)
             click.echo(f"Спикер {speaker.diarization_label} назначен как {candidate.person_name}")
 
-        # 5. После обработки всех неизвестных, коммитим изменения в БД (если нужно)
+        # После обработки всех неизвестных, коммитим изменения в БД (если нужно)
+        
+        meeting_repo.update_status(meeting_uuid, MeetingStatus.COMPLETED)
         session.commit()
         click.echo("\nВсе изменения сохранены.")
 

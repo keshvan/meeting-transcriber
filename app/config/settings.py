@@ -68,6 +68,7 @@ class Settings:
     embedding_min_duration: float
     stt_provider: str
     stt_model: str
+    stt_language: str
     qdrant: QdrantSettings
     speaker_identification: SpeakerIdentificationSettings
     embedding_protection: EmbeddingProtectionSettings
@@ -105,6 +106,7 @@ settings = Settings(
     embedding_min_duration=_get_float("EMBEDDING_MIN_DURATION", 0.5),
     stt_provider=os.getenv("STT_PROVIDER", "whisper_local"),
     stt_model=os.getenv("STT_MODEL", "base"),
+    stt_language=os.getenv("STT_LANGUAGE", "ru"),
     qdrant=QdrantSettings(
         url=os.getenv("QDRANT_URL", "http://localhost:6333"),
         api_key=os.getenv("QDRANT_API_KEY") or None,

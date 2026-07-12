@@ -18,5 +18,5 @@ tasks:
     desc: "Запустить CLI для уточнения неизвестных спикеров по ID встречи"
     cmds:
       - python -m app.cli.resolve {{.MEETING_ID}}
-    vars:
-      MEETING_ID: "{{.MEETING_ID | default '00000000-0000-0000-0000-000000000000'}}"
+    requires:
+      vars: [MEETING_ID]
