@@ -30,18 +30,8 @@ class Speaker:
     embedding_id: Optional[UUID]  # qdrant_point_id
 
 @dataclass
-class Segment:
-    id: UUID
-    meeting_id: UUID
-    speaker_id: Optional[UUID]
-    start_ms: int
-    end_ms: int
-    text: str
-
-@dataclass
 class Meeting:
     id: UUID
     created_at: datetime
-    audio_key: str
     status: MeetingStatus
     duration: Optional[int] = None

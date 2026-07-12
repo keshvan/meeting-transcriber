@@ -1,13 +1,16 @@
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+import asyncio
+
+from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Form, Depends, HTTPException
 from typing import Optional
 
-from app.application.meeting import MeetingService
+from app.application.meeting import MeetingService, process_meeting_background
 from .dependencies import get_service
 
 router = APIRouter()
 
 @router.post("/process")
 async def process_meeting(
+    background_tasks: BackgroundTasks,
     email: str = Form(...),
     file: Optional[UploadFile] = File(None),
     audio_base64: Optional[str] = Form(None),
@@ -19,16 +22,21 @@ async def process_meeting(
             detail="Provide either file or audio_base64"
         )
 
-    try:
-        result = await service.process(
-            file=file,
-            audio_base64=audio_base64,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    meeting_id, audio = await service.create_processing_meeting(
+        file=file,
+        audio_base64=audio_base64,
+    )
 
-    return {
-        "email": email,
-        "result": result,
-    }
+    asyncio.create_task(
+        process_meeting_background(
+            meeting_id,
+            audio,
+            email
+        )
+    )
     
+    return {
+        "meeting_id": str(meeting_id),
+        "email": email,
+        "status": "processing",
+    }

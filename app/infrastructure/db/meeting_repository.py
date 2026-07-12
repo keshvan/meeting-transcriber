@@ -11,7 +11,6 @@ def _meeting_to_domain(row: MeetingORM) -> Meeting:
     return Meeting(
         id=row.id,
         created_at=row.created_at,
-        audio_key=row.audio_key,
         status=MeetingStatus(row.status),
         duration=row.duration,
     )
@@ -23,7 +22,6 @@ class PostgresMeetingRepository:
     def create(self, meeting: Meeting) -> Meeting:
         row = MeetingORM(
             id=meeting.id,
-            audio_key=meeting.audio_key,
             status=meeting.status.value,
             duration=meeting.duration,
         )
