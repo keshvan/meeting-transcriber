@@ -20,12 +20,14 @@ class MeetingService:
         pipeline: MeetingPipeline,
         meeting_repository: MeetingRepository,
         speaker_repository: SpeakerRepository,
+        segment_repository: SegmentRepository,
         formatter: Formatter,
         smtp_service: SmtpService
     ):
         self.pipeline = pipeline
         self.meeting_repository = meeting_repository
         self.speaker_repository = speaker_repository
+        self.segment_repository = segment_repository
         self.formatter = formatter
         self.smtp_service = smtp_service
 
@@ -35,6 +37,9 @@ class MeetingService:
 
             self.speaker_repository.bulk_create(result.speakers)
             self.speaker_repository.commit()
+
+            self.segment_repository.bulk_create(result.segments)
+            self.segment_repository.commit()
 
             self.meeting_repository.update_status(
                 meeting_id,
