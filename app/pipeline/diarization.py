@@ -39,7 +39,7 @@ class DiarizationProcessor:
                 SpeechSegment(
                     start_ms=round(turn.start * 1000),
                     end_ms=round(turn.end * 1000),
-                    diarization_label=speaker,
+                    speaker_id=speaker,
                 )
             )
 

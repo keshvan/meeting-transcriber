@@ -22,9 +22,8 @@ class Person:
 
 @dataclass
 class Speaker:
-    id: UUID
     meeting_id: UUID
-    diarization_label: str
+    speaker_id: str
     person_id: Optional[UUID]
     status: SpeakerStatus
     embedding_id: Optional[UUID]  # qdrant_point_id

@@ -1,16 +1,18 @@
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, Protocol
 from uuid import UUID
 import uuid
 
-from app.application.speaker_identification import SpeakerIdentificationService
-from app.application.ports.repositories import PersonRepository  # <-- добавить
-from app.domain.entities import Speaker, SpeakerStatus, Person  # <-- добавить Person
-from app.domain.raw_audio import RawAudio
+from app.services.speaker_identification.speaker_identification import SpeakerIdentificationService
+from app.domain.entities import Speaker, SpeakerStatus, Person 
+from app.domain.raw_audio import load_audio
 from app.domain.pipeline_result import PipelineResult
 from app.domain.speech_segment import SpeechSegment
 from app.domain.voice_embedding import VoiceEmbedding
+from app.storage.local_storage import LocalAudioStorage
+from app.config.settings import settings
 
 if TYPE_CHECKING:
     from app.pipeline.diarization import DiarizationProcessor
@@ -18,6 +20,9 @@ if TYPE_CHECKING:
     from app.pipeline.embedding import EmbeddingProcessor
     from app.pipeline.alignment import AlignmentProcessor
 
+class PersonRepository(Protocol):
+    def create(person: Person) -> Person: ...
+    def get(person_id: UUID) -> Optional[Person]: ...
 
 class MeetingPipeline:
     def __init__(
@@ -26,17 +31,17 @@ class MeetingPipeline:
         stt: "STTProcessor",
         alignment: "AlignmentProcessor",
         embedding: "EmbeddingProcessor",
-        speaker_identification: SpeakerIdentificationService,
-        person_repository: PersonRepository,  # <-- новый параметр
+        speaker_identification: SpeakerIdentificationService
     ):
         self.diarization = diarization
         self.stt = stt
         self.alignment = alignment
         self.embedding = embedding
         self.speaker_identification = speaker_identification
-        self.person_repository = person_repository  # <-- сохранить
 
-    def process(self, meeting_id: UUID, audio: RawAudio) -> PipelineResult:
+    async def process(self, meeting_id: UUID, audio_path: Path, person_repository: PersonRepository) -> PipelineResult:
+        audio = await LocalAudioStorage(settings.base_dir).load(audio_path)
+
         segments = self.diarization.process(audio)
         for segment in segments:
             segment.meeting_id = meeting_id
@@ -59,7 +64,7 @@ class MeetingPipeline:
         print(f"Embedding result: {embedding_result.embeddings}")
         print("==================EMBEDDINGS==================")
 
-        self._apply_speaker_names(speakers=speakers, segments=segments, embeddings=embedding_result.embeddings)
+        self._apply_speaker_names(speakers=speakers, segments=segments, embeddings=embedding_result.embeddings, person_repository=person_repository)
 
         return PipelineResult(
             speakers=speakers,
@@ -75,20 +80,17 @@ class MeetingPipeline:
         mapping: dict[str, Speaker] = {}
 
         for segment in segments:
-            speaker = mapping.get(segment.diarization_label)
+            speaker = mapping.get(segment.speaker_id)
 
             if speaker is None:
                 speaker = Speaker(
-                    id=uuid.uuid4(),
                     meeting_id=meeting_id,
-                    diarization_label=segment.diarization_label,
+                    speaker_id=segment.speaker_id,
                     person_id=None,
                     status=SpeakerStatus.UNKNOWN,
                     embedding_id=None,
                 )
-                mapping[segment.diarization_label] = speaker
-
-            segment.speaker_id = speaker.id
+                mapping[segment.speaker_id] = speaker
 
         return list(mapping.values())
 
@@ -98,12 +100,14 @@ class MeetingPipeline:
         speakers: list[Speaker],
         segments: list[SpeechSegment],
         embeddings: list[VoiceEmbedding],
+        person_repository: PersonRepository
     ) -> None:
         if self.speaker_identification is None:
             return
         
-        speaker_map: dict[UUID, Speaker] = {speaker.id: speaker for speaker in speakers}
-        speaker_segments: defaultdict[UUID, list[SpeechSegment]] = defaultdict(list)
+        speaker_map: dict[str, Speaker] = {speaker.speaker_id: speaker for speaker in speakers}
+        speaker_segments: defaultdict[str, list[SpeechSegment]] = defaultdict(list)
+        
         for segment in segments:
             speaker_segments[segment.speaker_id].append(segment)
 
@@ -113,23 +117,25 @@ class MeetingPipeline:
             if speaker is None:
                 continue
 
+            speaker.embedding_id = embedding.embedding_id
+
             for segment in speaker_segments.get(embedding.speaker_id, []):
                 segment.person_name = result.person_name
 
             if result.is_known:
                 # Убедимся, что Person существует в БД
                 person_id = UUID(result.person_id)
-                person = self.person_repository.get(person_id)
+                person = person_repository.get(person_id)
                 if person is None:
                     person = Person(
                         id=person_id,
                         name=result.person_name,
                         created_at=datetime.now(timezone.utc),
                     )
-                    self.person_repository.create(person)
+                    person_repository.create(person)
 
                 speaker.person_id = person.id
-                speaker.embedding_id = embedding.embedding_id
+                #speaker.embedding_id = embedding.embedding_id
                 speaker.status = SpeakerStatus.IDENTIFIED
 
                 # Сохраняем как подтверждённый (обновит центроид и перезапишет эмбеддинг)

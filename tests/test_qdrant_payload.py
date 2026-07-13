@@ -7,7 +7,7 @@ from app.domain.voice_embedding import VoiceEmbedding
 
 pytest.importorskip("qdrant_client")
 
-from app.infrastructure.qdrant_voice_embedding_repository import (
+from app.qdrant.qdrant_voice_embedding_repository import (
     QdrantVoiceEmbeddingRepository,
 )
 

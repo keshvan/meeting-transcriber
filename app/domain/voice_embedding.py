@@ -1,15 +1,13 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
-from uuid import UUID, uuid4
-
+from uuid import uuid4
 
 Vector = list[float]
 
-
 @dataclass(frozen=True)
 class VoiceEmbedding:
-    speaker_id: UUID
+    speaker_id: str
     vector: Vector
     person_id: str | None =  None
     person_name: str | None = None

@@ -1,9 +1,9 @@
 from qdrant_client import QdrantClient
 
-from app.application.embedding_protection import build_embedding_protector
-from app.application.speaker_identification import SpeakerIdentificationService
+from app.services.embedding_protection.embedding_protection import build_embedding_protector
+from app.services.speaker_identification.speaker_identification import SpeakerIdentificationService
 from app.config.settings import settings
-from app.infrastructure.qdrant_voice_embedding_repository import (
+from app.qdrant.qdrant_voice_embedding_repository import (
     QdrantVoiceEmbeddingRepository,
 )
 
