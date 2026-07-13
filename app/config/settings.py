@@ -74,6 +74,12 @@ class Settings:
     embedding_protection: EmbeddingProtectionSettings
     postgres_dsn: str
     base_dir: str
+    redis_url: str
+    smtp_host: str
+    smtp_port: int
+    smtp_username: str
+    smtp_password: str
+    smtp_sender: str
 
 def resolve_device(device_name: str) -> torch.device:
     device_name = device_name.lower()
@@ -137,5 +143,10 @@ settings = Settings(
         transform_matrix_path=os.getenv("EMBEDDING_TRANSFORM_MATRIX_PATH") or None,
     ),
     postgres_dsn=os.getenv("POSTGRRES_DSN", "postgresql+psycopg2://postgres:postgres@localhost:5432/meetings"),
-    base_dir=os.getenv("BASE_DIR", "./data/meetings")
+    base_dir=os.getenv("BASE_DIR", "./data/meetings"),
+    smtp_host=os.getenv("SMTP_HOST", "smtp.gmail.com"),
+    smtp_port=_get_int("SMTP_PORT", 587),
+    smtp_username=os.getenv("SMTP_USERNAME"),
+    smtp_password=os.getenv("SMTP_PASSWORD"),
+    smtp_sender=os.getenv("SMTP_SENDER")
 )

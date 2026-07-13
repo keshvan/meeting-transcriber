@@ -7,14 +7,14 @@ import click
 from sqlalchemy.orm import Session
 
 from app.config.settings import settings
-from app.infrastructure.db.session import get_session
-from app.infrastructure.db.speaker_repository import PostgresSpeakerRepository
-from app.infrastructure.db.segment_repository import PostgresSegmentRepository
-from app.infrastructure.db.person_repository import PostgresPersonRepository
-from app.infrastructure.db.meeting_repository import PostgresMeetingRepository
-from app.infrastructure.qdrant_voice_embedding_repository import QdrantVoiceEmbeddingRepository
+from app.db.session import get_session
+from app.db.speaker_repository import PostgresSpeakerRepository
+from app.db.segment_repository import PostgresSegmentRepository
+from app.db.person_repository import PostgresPersonRepository
+from app.db.meeting_repository import PostgresMeetingRepository
+from app.qdrant.qdrant_voice_embedding_repository import QdrantVoiceEmbeddingRepository
 from app.infrastructure.service_factory import build_qdrant_client, build_embedding_protector
-from app.application.speaker_identification import SpeakerIdentificationService
+from app.services.speaker_identification.speaker_identification import SpeakerIdentificationService
 from app.domain.entities import Speaker, SpeakerStatus, Person, MeetingStatus
 from app.domain.voice_embedding import VoiceEmbedding
 

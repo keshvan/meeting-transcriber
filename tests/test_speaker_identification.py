@@ -1,5 +1,5 @@
-from app.application.embedding_protection import NoOpEmbeddingProtector
-from app.application.speaker_identification import SpeakerIdentificationService
+from app.services.embedding_protection.embedding_protection import NoOpEmbeddingProtector
+from app.services.speaker_identification.speaker_identification import SpeakerIdentificationService
 from app.config.settings import SpeakerIdentificationSettings
 from app.domain.voice_embedding import SpeakerCandidate
 
