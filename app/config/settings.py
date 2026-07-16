@@ -74,7 +74,6 @@ class Settings:
     embedding_protection: EmbeddingProtectionSettings
     postgres_dsn: str
     base_dir: str
-    redis_url: str
     smtp_host: str
     smtp_port: int
     smtp_username: str
