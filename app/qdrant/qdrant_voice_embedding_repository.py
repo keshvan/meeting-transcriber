@@ -191,7 +191,7 @@ class QdrantVoiceEmbeddingRepository:
             updated_at=datetime.utcnow(),
         )
 
-    def get_embeddings_by_speaker(self, speaker_id: UUID) -> list[VoiceEmbedding]:
+    def get_embeddings_by_speaker(self, speaker_id: str) -> list[VoiceEmbedding]:
         """Возвращает все эмбеддинги для данного speaker_id (обычно один)."""
         response = self.client.scroll(
             collection_name=self.settings.embeddings_collection,

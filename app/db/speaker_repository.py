@@ -53,10 +53,13 @@ class PostgresSpeakerRepository:
         ).all()
         return [_speaker_to_domain(r) for r in rows]
 
-    def assign_person(self, speaker_id: UUID, person_id: UUID) -> None:
+    def assign_person(self, meeting_id: UUID, speaker_id: str, person_id: UUID) -> None:
         self._session.execute(
             update(SpeakerORM)
-            .where(SpeakerORM.id == speaker_id)
+            .where(
+                SpeakerORM.meeting_id == meeting_id,
+                SpeakerORM.speaker_id == speaker_id
+            )
             .values(person_id=person_id, status=SpeakerStatus.IDENTIFIED.value)
         )
     

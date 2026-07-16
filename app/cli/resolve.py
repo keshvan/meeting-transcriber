@@ -72,9 +72,9 @@ def main(meeting_id: str):
         # Для каждого неизвестного получаем эмбеддинг из Qdrant
         speaker_embedding_map = {}
         for speaker in unknown_speakers:
-            embeddings = qdrant_repo.get_embeddings_by_speaker(speaker.id)
+            embeddings = qdrant_repo.get_embeddings_by_speaker(speaker.speaker_id)
             if embeddings:
-                speaker_embedding_map[speaker.id] = embeddings[0]  # берём первый (обычно один)
+                speaker_embedding_map[speaker.speaker_id] = embeddings[0]  # берём первый (обычно один)
             else:
                 click.echo(f"Предупреждение: для спикера {speaker.diarization_label} не найден эмбеддинг. Пропускаем.")
 
@@ -84,17 +84,17 @@ def main(meeting_id: str):
 
         # Интерактивный опрос
         for speaker in unknown_speakers:
-            embedding = speaker_embedding_map.get(speaker.id)
+            embedding = speaker_embedding_map.get(speaker.speaker_id)
             if embedding is None:
                 continue
 
             # Получаем примеры реплик этого спикера
-            segments = segment_repo.get_by_speaker(speaker.id)
+            segments = segment_repo.get_by_meeting_and_speaker(meeting_id, speaker.speaker_id)
             sample_segments = segments[:10]  # первые три
             sample_text = " | ".join(seg.text for seg in sample_segments)
 
             click.echo("\n" + "=" * 60)
-            click.echo(f"Спикер {speaker.diarization_label} (примеры: '{sample_text}')")
+            click.echo(f"Спикер {speaker.speaker_id} (примеры: '{sample_text}')")
 
             # Получаем кандидатов через suggest
             candidates = identification.suggest(embedding.vector, limit=5)
@@ -124,10 +124,10 @@ def main(meeting_id: str):
                 # Создаём Person
                 person = person_repo.create(Person(id=uuid.uuid4(), name=name))
                 # Привязываем спикера
-                speaker_repo.assign_person(speaker.id, person.id)
+                speaker_repo.assign_person(meeting_id, speaker.speaker_id, person.id)
                 # Сохраняем эмбеддинг как подтверждённый
                 confirmed_emb = VoiceEmbedding(
-                    speaker_id=speaker.id,
+                    speaker_id=speaker.speaker_id,
                     person_id=str(person.id),
                     person_name=person.name,
                     vector=embedding.vector,
@@ -136,7 +136,7 @@ def main(meeting_id: str):
                     metadata=embedding.metadata,
                 )
                 identification.save_confirmed_embedding(confirmed_emb)
-                click.echo(f"Спикер {speaker.diarization_label} назначен как {person.name}")
+                click.echo(f"Спикер {speaker.speaker_id} назначен как {person.name}")
                 continue
 
             # Выбор существующего кандидата
@@ -153,9 +153,9 @@ def main(meeting_id: str):
             person_id = uuid.UUID(candidate.person_id)
             # Проверим, есть ли такой Person в БД? Можно создать, если нет, но обычно он есть.
             # Просто назначаем
-            speaker_repo.assign_person(speaker.id, person_id)
+            speaker_repo.assign_person(meeting_id, speaker.speaker_id, person_id)
             confirmed_emb = VoiceEmbedding(
-                speaker_id=speaker.id,
+                speaker_id=speaker.speaker_id,
                 person_id=candidate.person_id,
                 person_name=candidate.person_name,
                 vector=embedding.vector,
