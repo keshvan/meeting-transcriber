@@ -84,12 +84,13 @@ class MeetingWorker:
 
             self.smtp_service.send_transcript(
                 recipient=event.contact,
-                subject="Расшифровка встречи",
+                subject=f"Стенограмма встречи {event.meeting_id}",
                 html_preview=html,
                 txt_content=txt,
             )
 
-        except Exception:
+        except Exception as e:
+            print(e)
             meeting_repository.update_status(
                 event.meeting_id,
                 MeetingStatus.FAILED,
