@@ -1,4 +1,5 @@
 from collections import defaultdict
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Protocol
@@ -152,6 +153,12 @@ class MeetingPipeline:
                 )
             else:
                 speaker.status = SpeakerStatus.UNKNOWN
+
+                embedding = replace(
+                    embedding,
+                    vector=self.speaker_identification.protector.protect(embedding.vector),
+                )
+                
                 # Сохраняем эмбеддинг без person_id (как неизвестный)
                 self.speaker_identification.repository.upsert_embedding(
                     embedding=embedding,

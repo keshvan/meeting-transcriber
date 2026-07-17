@@ -9,7 +9,8 @@ from app.pipeline.diarization import DiarizationProcessor
 from app.pipeline.embedding import EmbeddingProcessor
 from app.pipeline.stt import STTProcessor
 from app.qdrant.qdrant_voice_embedding_repository import QdrantVoiceEmbeddingRepository
-from app.services.embedding_protection.embedding_protection import EmbeddingProtector, NoOpEmbeddingProtector
+from app.services.embedding_protection.embedding_protection import build_embedding_protector
+from app.services.speaker_identification.speaker_identification import SpeakerIdentificationService
 from app.stt.factory import STTFactory
 from app.worker.consumer import RedisMeetingConsumer
 from app.worker.meeting_worker import MeetingWorker
@@ -20,7 +21,7 @@ from app.services.smtp.smtp import SmtpService
 from app.config.settings import settings
 
 from app.storage.local_storage import LocalAudioStorage
-from app.services.speaker_identification.speaker_identification import SpeakerIdentificationService
+
 
 client = QdrantClient(
     url=settings.qdrant.url,
@@ -37,7 +38,7 @@ repository.ensure_storage()
 
 speaker_identification = SpeakerIdentificationService(
     repository=repository,
-    protector=NoOpEmbeddingProtector(),
+    protector=build_embedding_protector(settings.embedding_protection, 192),
     config=settings.speaker_identification,
 )
 
