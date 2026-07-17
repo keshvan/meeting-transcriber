@@ -63,17 +63,25 @@ class EmbeddingProtectionSettings:
 class Settings:
     hf_token: str
     device: torch.device
+
     diarization_model: str
+
     embedding_model: str
     embedding_min_duration: float
+
     stt_provider: str
     stt_model: str
     stt_language: str
+
     qdrant: QdrantSettings
+
     speaker_identification: SpeakerIdentificationSettings
     embedding_protection: EmbeddingProtectionSettings
+
     postgres_dsn: str
-    base_dir: str
+
+    audio_download_dir: str
+
     smtp_host: str
     smtp_port: int
     smtp_username: str
@@ -142,7 +150,7 @@ settings = Settings(
         transform_matrix_path=os.getenv("EMBEDDING_TRANSFORM_MATRIX_PATH") or None,
     ),
     postgres_dsn=os.getenv("POSTGRRES_DSN", "postgresql+psycopg2://postgres:postgres@localhost:5432/meetings"),
-    base_dir=os.getenv("BASE_DIR", "./data/meetings"),
+    base_dir=os.getenv("AUDIO_DOWNLOAD_DIR", "./data/meetings"),
     smtp_host=os.getenv("SMTP_HOST", "smtp.gmail.com"),
     smtp_port=_get_int("SMTP_PORT", 587),
     smtp_username=os.getenv("SMTP_USERNAME"),

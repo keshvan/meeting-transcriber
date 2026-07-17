@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     app.state.redis_publisher = RedisPublisher(redis)
 
     app.state.audio_storage = LocalAudioStorage(
-        base_dir=settings.base_dir
+        base_dir=settings.audio_download_dir
     )
 
     app.state.qdrant = qdrant_client

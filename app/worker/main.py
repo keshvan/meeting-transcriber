@@ -38,7 +38,7 @@ repository.ensure_storage()
 
 speaker_identification = SpeakerIdentificationService(
     repository=repository,
-    protector=build_embedding_protector(settings.embedding_protection, 192),
+    protector=build_embedding_protector(settings.embedding_protection, settings.qdrant.vector_size),
     config=settings.speaker_identification,
 )
 
@@ -62,7 +62,7 @@ async def create_consumer() -> RedisMeetingConsumer:
 
     worker = MeetingWorker(
         pipeline=pipeline,
-        audio_storage=LocalAudioStorage(settings.base_dir),
+        audio_storage=LocalAudioStorage(settings.audio_download_dir),
         formatter=Formatter(),
         smtp_service=SmtpService(
             host=settings.smtp_host,

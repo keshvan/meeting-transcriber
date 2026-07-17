@@ -41,7 +41,7 @@ class MeetingPipeline:
         self.speaker_identification = speaker_identification
 
     async def process(self, meeting_id: UUID, audio_path: Path, person_repository: PersonRepository) -> PipelineResult:
-        audio = await LocalAudioStorage(settings.base_dir).load(audio_path)
+        audio = await LocalAudioStorage(settings.audio_download_dir).load(audio_path)
 
         segments = self.diarization.process(audio)
         for segment in segments:
@@ -124,7 +124,6 @@ class MeetingPipeline:
                 segment.person_name = result.person_name
 
             if result.is_known:
-                # Убедимся, что Person существует в БД
                 person_id = UUID(result.person_id)
                 person = person_repository.get(person_id)
                 if person is None:
@@ -136,10 +135,8 @@ class MeetingPipeline:
                     person_repository.create(person)
 
                 speaker.person_id = person.id
-                #speaker.embedding_id = embedding.embedding_id
                 speaker.status = SpeakerStatus.IDENTIFIED
 
-                # Сохраняем как подтверждённый (обновит центроид и перезапишет эмбеддинг)
                 self.speaker_identification.save_confirmed_embedding(
                     VoiceEmbedding(
                         speaker_id=embedding.speaker_id,
@@ -159,9 +156,8 @@ class MeetingPipeline:
                     vector=self.speaker_identification.protector.protect(embedding.vector),
                 )
                 
-                # Сохраняем эмбеддинг без person_id (как неизвестный)
                 self.speaker_identification.repository.upsert_embedding(
                     embedding=embedding,
-                    embedding_count=1, # Не важно, центроида не обновляется
+                    embedding_count=1,
                     updated_at=datetime.now(timezone.utc),
                 )
