@@ -37,8 +37,6 @@ class SpeakerService:
 
         speaker = self.speaker_repository.get_by_meeting_and_id(meeting_id, speaker_id)
 
-        print(speaker)
-
         embedding = self.embedding_repository.get_embedding(speaker.embedding_id)
         
         confirmed_embedding = VoiceEmbedding(
@@ -52,5 +50,8 @@ class SpeakerService:
         )
 
         self.identification_service.save_confirmed_embedding(
-            confirmed_embedding
+            confirmed_embedding,
+            False
         )
+
+        self.speaker_repository.assign_person(meeting_id, speaker_id, person.id)

@@ -78,23 +78,32 @@ class SpeakerIdentificationService:
             is_known=True,
         )
 
-    def save_confirmed_embedding(self, embedding: VoiceEmbedding) -> None:
+    def save_confirmed_embedding(self, embedding: VoiceEmbedding, protect: bool = True) -> None:
         updated_at = datetime.now(timezone.utc)
+
+        vector = (
+            self.protector.protect(embedding.vector)
+            if protect
+            else embedding.vector
+        )
+
         protected_embedding = VoiceEmbedding(
             person_id=embedding.person_id,
             speaker_id=embedding.speaker_id,
             person_name=embedding.person_name,
-            vector=self.protector.protect(embedding.vector),
+            vector=vector,
             embedding_id=embedding.embedding_id,
             updated_at=updated_at,
             metadata=embedding.metadata,
         )
+
         next_vector, next_count = self._next_centroid(protected_embedding)
         self.repository.upsert_embedding(
             protected_embedding,
             embedding_count=next_count,
             updated_at=updated_at,
         )
+        
         self.repository.upsert_centroid(
             person_id=embedding.person_id,
             person_name=embedding.person_name,
